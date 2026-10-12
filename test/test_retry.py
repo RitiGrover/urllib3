@@ -181,6 +181,18 @@ class TestRetry:
         retry = retry.increment(method="GET")
         assert retry.get_backoff_time() == max_backoff
 
+    @pytest.mark.parametrize("backoff_factor, expected", [(0.2, 1), (0.0, 0)])
+    def test_backoff_many_consecutive_errors(
+        self, backoff_factor: float, expected: float
+    ) -> None:
+        """The backoff is still capped after the exponent no longer fits a float"""
+        retry = Retry(total=None, backoff_factor=backoff_factor, backoff_max=1)
+
+        for _ in range(1100):
+            retry = retry.increment(method="GET")
+
+        assert retry.get_backoff_time() == expected
+
     def test_configurable_retry_after_max(self) -> None:
         """Configurable retry after is computed correctly"""
         max_retry_after = Retry.DEFAULT_RETRY_AFTER_MAX

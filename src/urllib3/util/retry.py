@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import email
 import logging
+import math
 import random
 import re
 import time
@@ -334,7 +335,11 @@ class Retry:
         if consecutive_errors_len <= 1:
             return 0
 
-        backoff_value = self.backoff_factor * (2 ** (consecutive_errors_len - 1))
+        try:
+            backoff_value = self.backoff_factor * (2 ** (consecutive_errors_len - 1))
+        except OverflowError:
+            # The exponent no longer fits in a float, backoff_max caps it below.
+            backoff_value = math.inf if self.backoff_factor > 0 else 0.0
         if self.backoff_jitter != 0.0:
             backoff_value += random.random() * self.backoff_jitter
         return float(max(0, min(self.backoff_max, backoff_value)))
